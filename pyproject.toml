@@ -24,7 +24,7 @@ classifiers = [
 ]
 requires-python = ">=3.9.0"
 dependencies = [
-    "wyoming==1.5.4",
+    "wyoming==1.6.0",
     "zeroconf==0.88.0",
     "pyring-buffer>=1,<2",
 ]

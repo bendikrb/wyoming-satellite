@@ -13,7 +13,7 @@ from typing import Callable, Dict, Final, List, Optional, Set, Union
 
 from pyring_buffer import RingBuffer
 from wyoming.asr import Transcript
-from wyoming.audio import AudioChunk, AudioFormat, AudioStart, AudioStop
+from wyoming.audio import AudioChunk, AudioStart, AudioStop
 from wyoming.client import AsyncClient
 from wyoming.error import Error
 from wyoming.event import Event, async_write_event
@@ -321,7 +321,11 @@ class SatelliteBase:
         if forward_event:
             await self.forward_event(event)
 
-    async def _send_run_pipeline(self, pipeline_name: Optional[str] = None) -> None:
+    async def _send_run_pipeline(
+        self,
+        wake_word_name: Optional[str] = None,
+        announce_text: Optional[str] = None,
+    ) -> None:
         """Sends a RunPipeline event with the correct stages."""
         if self.settings.wake.enabled:
             # Local wake word detection
@@ -342,13 +346,10 @@ class SatelliteBase:
         run_pipeline = RunPipeline(
             start_stage=start_stage,
             end_stage=end_stage,
-            name=pipeline_name,
+            wake_word_name=wake_word_name,
             restart_on_end=restart_on_end,
-            snd_format=AudioFormat(
-                rate=self.settings.snd.rate,
-                width=self.settings.snd.width,
-                channels=self.settings.snd.channels,
-            ),
+            wake_word_names=self.settings.wake.names,
+            announce_text=announce_text,
         ).event()
         _LOGGER.debug(run_pipeline)
         await self.event_to_server(run_pipeline)
@@ -1362,15 +1363,15 @@ class WakeStreamingSatellite(SatelliteBase):
             await self.event_to_server(event)
 
             # Match detected wake word name with pipeline name
-            pipeline_name: Optional[str] = None
+            wake_word_name: Optional[str] = None
             if self.settings.wake.names:
                 detection_name = normalize_wake_word(detection.name)
                 for wake_name in self.settings.wake.names:
                     if normalize_wake_word(wake_name.name) == detection_name:
-                        pipeline_name = wake_name.pipeline
+                        wake_word_name = wake_name.name
                         break
 
-            await self._send_run_pipeline(pipeline_name=pipeline_name)
+            await self._send_run_pipeline(wake_word_name=wake_word_name)
             await self.forward_event(event)  # forward to event service
             await self.trigger_detection(Detection.from_event(event))
             await self.trigger_streaming_start()
