@@ -348,7 +348,7 @@ class SatelliteBase:
             end_stage=end_stage,
             wake_word_name=wake_word_name,
             restart_on_end=restart_on_end,
-            wake_word_names=self.settings.wake.names,
+            wake_word_names=[ww.name for ww in self.settings.wake.names] if self.settings.wake.names else None,
             announce_text=announce_text,
         ).event()
         _LOGGER.debug(run_pipeline)
